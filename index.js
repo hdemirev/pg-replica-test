@@ -23,18 +23,25 @@ const init = async () => {
 };
 
 const checkExistsOnReplica = async (key, value, isRetry) => {
-  const replicaResult = await replicaPool.query(
-    `select * from dummy_data where key = $1`,
-    [key]
-  );
-  if (replicaResult.rows.length == 1 && replicaResult.rows[0].value === value) {
-    if (isRetry) {
-      replicaMatchesEventually++;
+  try {
+    const replicaResult = await replicaPool.query(
+      `select * from dummy_data where key = $1`,
+      [key]
+    );
+    if (
+      replicaResult.rows.length == 1 &&
+      replicaResult.rows[0].value === value
+    ) {
+      if (isRetry) {
+        replicaMatchesEventually++;
+      } else {
+        replicaMatches++;
+      }
     } else {
-      replicaMatches++;
+      checkExistsOnReplica(key, value, true);
     }
-  } else {
-    checkExistsOnReplica(key, value, true);
+  } catch (e) {
+    console.log("error from replica read", e);
   }
 };
 
@@ -70,9 +77,6 @@ const generateInserts = (numInserts) => {
           }, process.env.REPLICATION_CHECK_TIME || 1000);
 
           tasksDone++;
-          if (tasksDone % 100 === 0) {
-            logProgress();
-          }
           done();
         })
         .catch((e) => {
@@ -96,6 +100,9 @@ const runInserts = (inserts) => {
 const main = async () => {
   await init();
   const inserts = generateInserts(process.env.NUM_INSERTS || 10000);
+  setInterval(() => {
+    logProgress();
+  }, 2000);
   runInserts(inserts);
 };
 
