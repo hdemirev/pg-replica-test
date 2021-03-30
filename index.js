@@ -48,7 +48,7 @@ const logProgress = () => {
 
 const generateInserts = (numInserts) => {
   const tasks = [];
-  for (var i = 0; i <= numTasks; i++) {
+  for (var i = 0; i <= numInserts; i++) {
     const key = `${Math.random()}${Math.random()}`;
     const value = `${Math.random()}${Math.random()}`;
     const task = (done) => {
