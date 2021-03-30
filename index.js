@@ -14,7 +14,7 @@ const replicaPool = new Pool({
 const init = async () => {
   try {
     await pool.query(
-      "create table if not exists dummy_data(key text value text)"
+      "create table if not exists dummy_data(key text, value text)"
     );
     console.log("table created");
   } catch (e) {
@@ -91,7 +91,7 @@ const runInserts = (inserts) => {
 };
 
 const main = async () => {
-  init();
+  await init();
   const inserts = generateInserts(process.env.NUM_INSERTS || 10000);
   runInserts(inserts);
 };
