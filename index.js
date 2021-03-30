@@ -24,6 +24,7 @@ const init = async () => {
 
 const checkExistsOnReplica = async (key, value, isRetry) => {
   try {
+    if (isRetry) replicaReadReattempts++;
     const replicaResult = await replicaPool.query(
       `select * from dummy_data where key = $1`,
       [key]
@@ -48,6 +49,7 @@ const checkExistsOnReplica = async (key, value, isRetry) => {
 let tasksDone = 0;
 let replicaMatches = 0;
 let replicaMatchesEventually = 0;
+let replicaReadReattempts = 0;
 
 const logProgress = () => {
   console.log(
@@ -56,7 +58,9 @@ const logProgress = () => {
     "replica matches: ",
     replicaMatches,
     "replica matches eventually: ",
-    replicaMatchesEventually
+    replicaMatchesEventually,
+    "replica read reattempts: ",
+    replicaReadReattempts
   );
 };
 
