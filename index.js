@@ -22,27 +22,34 @@ const init = async () => {
   }
 };
 
-const checkExistsOnReplica = async (key, value) => {
-  const replicaResult = await pool.query(
+const checkExistsOnReplica = async (key, value, isRetry) => {
+  const replicaResult = await replicaPool.query(
     `select * from dummy_data where key = $1`,
     [key]
   );
-  if (replicaResult.rows.length == 1) {
-    return replicaResult.rows[0].value === value;
+  if (replicaResult.rows.length == 1 && replicaResult.rows[0].value === value) {
+    if (isRetry) {
+      replicaMatchesEventually++;
+    } else {
+      replicaMatches++;
+    }
   } else {
-    return false;
+    checkExistsOnReplica(key, value, true);
   }
 };
 
 let tasksDone = 0;
 let replicaMatches = 0;
+let replicaMatchesEventually = 0;
 
 const logProgress = () => {
   console.log(
-    "tasks completed:",
+    "tasks completed: ",
     tasksDone,
     "replica matches: ",
-    replicaMatches
+    replicaMatches,
+    "replica matches eventually: ",
+    replicaMatchesEventually
   );
 };
 
@@ -59,11 +66,7 @@ const generateInserts = (numInserts) => {
         ])
         .then(() => {
           setTimeout(() => {
-            checkExistsOnReplica(key, value).then((exists) => {
-              if (exists) {
-                replicaMatches++;
-              }
-            });
+            checkExistsOnReplica(key, value, false);
           }, process.env.REPLICATION_CHECK_TIME || 1000);
 
           tasksDone++;
